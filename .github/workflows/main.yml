@@ -7,8 +7,10 @@
 name: x-wrt-master=ipq40xx-generic
 
 on: 
-  release:
-    types: [published]
+  repository_dispatch:
+
+#  release:
+#    types: [published]
 #  push:
 #    branches:
 #      - master
