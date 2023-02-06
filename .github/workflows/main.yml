@@ -14,9 +14,15 @@ on:
 #      - master
 #  schedule:
 #    - cron: 0 8 * * 5
-  watch:
-    types: [started]
-
+#  watch:
+#    types: [started]
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+        
 jobs:
   build:
     if: contains(github.event.head_commit.message, 'release:')
