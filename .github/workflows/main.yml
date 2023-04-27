@@ -86,7 +86,7 @@ jobs:
         cp release.tag x-wrt/
         cd x-wrt
         echo -e "$(nproc) thread build."
-        TARGET=ipq40xx-generic sh build.sh $(nproc)
+        TARGET=ipq40xx-generic sh build.sh $(($(nproc)+1))
 
     - name : Upload make.log if failure
       uses: actions/upload-artifact@master
