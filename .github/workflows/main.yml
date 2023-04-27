@@ -30,7 +30,20 @@ on:
         description: 'SSH connection to Actions'
         required: false
         default: 'false'
-        
+env:
+  REPO_URL: https://github.com/xiaoxifu64/immortalwrt
+  REPO_BRANCH: master
+  FEEDS_CONF: feeds.conf.default
+  CONFIG_FILE: .config
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_COWTRANSFER: false
+  UPLOAD_WETRANSFER: true
+  UPLOAD_RELEASE: true
+  TZ: Asia/Shanghai
+
 jobs:
   build:
 ##    runs-on: ubuntu-18.04
@@ -44,6 +57,11 @@ jobs:
     - name: Initialization environment
       env:
         DEBIAN_FRONTEND: noninteractive
+        UPLOAD_BIN_DIR: false
+        UPLOAD_FIRMWARE: true
+        UPLOAD_COWTRANSFER: false
+        UPLOAD_WETRANSFER: true
+        UPLOAD_RELEASE: true
       run: |
         docker rmi `docker images -q`
         echo "Deleting files, please wait ..."
@@ -88,15 +106,36 @@ jobs:
         echo -e "$(nproc) thread build."
         TARGET=ipq40xx-generic sh build.sh $(($(nproc)+1))
 
-    - name : Upload make.log if failure
-      uses: actions/upload-artifact@master
-      if: failure()
+    - name: Generate release tag
+      id: tag
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      run: |
+        echo "::set-output name=release_tag::$(date +"%Y.%m.%d-%H%M")"
+        touch release.txt
+        [ $UPLOAD_COWTRANSFER = true ] && echo "🔗 [Cowtransfer](${{ steps.cowtransfer.outputs.url }})" >> release.txt
+        [ $UPLOAD_WETRANSFER = true ] && echo "🔗 [WeTransfer](${{ steps.wetransfer.outputs.url }})" >> release.txt
+        echo "::set-output name=status::success"
+    - name: Upload firmware to release
+      uses: softprops/action-gh-release@v1
+      if: steps.tag.outputs.status == 'success' && !cancelled()
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        name: build-failure-log
-        path: make.log
+        tag_name: ${{ steps.tag.outputs.release_tag }}
+        body_path: release.txt
+        files: ${{ env.FIRMWARE }}/*
 
-    - name : Upload artifact
-      uses: actions/upload-artifact@master
+    - name: Delete workflow runs
+      uses: GitRML/delete-workflow-runs@main
       with:
-        name: x-wrt-master=x86_64
-        path: x-wrt/rom
+        retain_days: 1
+        keep_minimum_runs: 3
+
+    - name: Remove old Releases
+      uses: dev-drprasad/delete-older-releases@v0.1.0
+      if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+      with:
+        keep_latest: 3
+        delete_tags: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
