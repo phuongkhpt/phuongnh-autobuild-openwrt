@@ -136,12 +136,12 @@ jobs:
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "::set-output name=status::success"
 
-     # - name: Upload firmware directory
-      #  uses: actions/upload-artifact@main
-     #   if: steps.organize.outputs.status == 'success' && !cancelled()
-    #    with:
-      #    name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
-     #     path: ${{ env.FIRMWARE }}
+      - name: Upload firmware directory
+        uses: actions/upload-artifact@main
+        if: steps.organize.outputs.status == 'success' && !cancelled()
+        with:
+          name: x-wrt-${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
+          path: ${{ env.FIRMWARE }}
 
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
@@ -166,6 +166,6 @@ jobs:
         uses: GitRML/delete-workflow-runs@main
         with:
           retain_days: 1
-          keep_minimum_runs: 3
+          keep_minimum_runs: 1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
