@@ -71,12 +71,11 @@ jobs:
       - name: Load custom feeds
         run: |
           [ -e $FEEDS_CONF ] && mv $FEEDS_CONF openwrt/feeds.conf.default
-          chmod +x $DIY_P1_SH
+          chmod +x $DIY_P1_SH && sed -i -e 's/\r$//' $GITHUB_WORKSPACE/$DIY_P1_SH
           cd openwrt
-          sed -i -e 's/\r$//' $GITHUB_WORKSPACE/$DIY_P1_SH
           $GITHUB_WORKSPACE/$DIY_P1_SH
           git fetch origin --tags
-          git describe --tags $(git rev-list --tags --max-count=1)
+          git describe --tags $(git rev-list --tags --max-count=1) > xwrt_version
           git checkout -f $(git describe --tags $(git rev-list --tags --max-count=1))
 
 
@@ -90,9 +89,9 @@ jobs:
         run: |
           [ -e files ] && mv files openwrt/files
           [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-          chmod +x $DIY_P2_SH
+          sed -i 's/CONFIG_VERSION_NUMBER\s*=.*/CONFIG_VERSION_NUMBER=$xwrt_version/g' openwrt/.config
+          chmod +x $DIY_P2_SH && sed -i -e 's/\r$//' $GITHUB_WORKSPACE/$DIY_P2_SH
           cd openwrt
-          sed -i -e 's/\r$//' $GITHUB_WORKSPACE/$DIY_P2_SH
           $GITHUB_WORKSPACE/$DIY_P2_SH
 
       - name: SSH connection to Actions
@@ -122,6 +121,14 @@ jobs:
           [ -s DEVICE_NAME ] && echo "DEVICE_NAME=_$(cat DEVICE_NAME)" >> $GITHUB_ENV
           echo "FILE_DATE=_$(date +"%Y%m%d%H%M")" >> $GITHUB_ENV
 
+      - name: If Error
+        if: steps.compile.outcome == 'failure'
+        run: |
+          curl "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=Firmware ${{ env.FILE_NAME }} failed to compile."
+          cat openwrt/.config
+          echo '================================================================'
+          cd openwrt && make -j $(($(nproc)+1)) V=s
+
       - name: Check space usage
         if: (!cancelled())
         run: df -hT
@@ -149,6 +156,13 @@ jobs:
           name: x-wrt-${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
           path: ${{ env.FIRMWARE }}
 
+      - name: Generate release tag
+        id: tag
+        if: env.UPLOAD_RELEASE == 'true' && !cancelled()
+        run: |
+          echo "::set-output name=release_tag::$(date +"%Y.%m.%d")"
+          echo "::set-output name=status::success"
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v1
         if: steps.tag.outputs.status == 'success' && !cancelled()
@@ -167,3 +181,7 @@ jobs:
           delete_tags: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+      - name: Push Firmware done compile notification #Telegram Push Notification
+        if: steps.organize.outputs.status == 'success' && !cancelled()
+        run: curl "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" -d "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&text=Congratulations! Firmware ${{ env.FILE_NAME }} successfully uploaded."
