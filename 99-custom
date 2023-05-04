@@ -12,27 +12,6 @@ chmod -R u=rwX,go= /etc/dropbear
 uci commit dropbear
 /etc/init.d/dropbear restart
 
-
-wifi_password="06061988P"
-
-for radio in 'wifinet0' 'wifinet1'
-do
-    # Set country
-    uci set wireless."$radio".country="CN"
-
-    # Enable radio
-    uci set wireless."$radio".disabled="0"
-
-    # Set SSID and password
-    uci set wireless."$radio".ssid="MyHome2"
-    uci set wireless."$radio".encryption="psk-mixed"
-    uci set wireless."$radio".key="$wifi_password"
-
-    uci -q commit wireless
-done
-
-wifi reload
-
 cat << EOI > /etc/init.d/autoipset
 #!/bin/sh /etc/rc.common
 
@@ -90,6 +69,28 @@ chmod 755 /etc/init.d/autoipset
 /etc/init.d/autoipset enable
 /etc/init.d/autoipset start
 
+sed -i -re 's/^(option check_signature.*)/#\1/g' /etc/opkg.conf
+
 uci set network.lan.ipaddr="192.168.14.1"
 uci commit network
 /etc/init.d/network restart
+
+wifi_password="06061988P"
+
+for radio in 'wifinet0' 'wifinet1'
+do
+    # Set country
+    uci set wireless."$radio".country="CN"
+
+    # Enable radio
+    uci set wireless."$radio".disabled="0"
+
+    # Set SSID and password
+    uci set wireless."$radio".ssid="MyHome2"
+    uci set wireless."$radio".encryption="psk-mixed"
+    uci set wireless."$radio".key="$wifi_password"
+
+    uci -q commit wireless
+done
+
+wifi reload
