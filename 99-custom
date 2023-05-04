@@ -8,8 +8,10 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQClkSycJha1VyTFbqKVrB+3oMlAGJmb/kGn49KggsBI
 EOI
 uci set dropbear.@dropbear[0].PasswordAuth='on'
 uci set dropbear.@dropbear[0].RootPasswordAuth='on'
+chmod -R u=rwX,go= /etc/dropbear
 uci commit dropbear
 /etc/init.d/dropbear restart
+
 
 wifi_password="06061988P"
 
@@ -87,3 +89,7 @@ EOI
 chmod 755 /etc/init.d/autoipset
 /etc/init.d/autoipset enable
 /etc/init.d/autoipset start
+
+uci set network.lan.ipaddr="192.168.14.1"
+uci commit network
+/etc/init.d/network restart

@@ -109,7 +109,7 @@ jobs:
         run: |
           cd openwrt
           make defconfig
-          make download -j12
+          make download -j $(($(nproc)+1))
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
 
@@ -164,7 +164,7 @@ jobs:
         if: env.UPLOAD_RELEASE == 'true' && !cancelled()
         run: |
           touch release.txt
-          echo "::set-output name=release_tag::$(date +"%Y.%m.%d")"
+          echo "::set-output name=${{ env.DEVICE_NAME }}-release_tag::$(date +"%Y.%m.%d")"
           echo "::set-output name=status::success"
 
       - name: Upload firmware to release
