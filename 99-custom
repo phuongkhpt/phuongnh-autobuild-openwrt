@@ -15,11 +15,6 @@ uci commit dropbear
 cat << EOI > /etc/init.d/autoipset
 #!/bin/sh /etc/rc.common
 
-# OpenWrt /etc/init.d/ script to automatically add ipsets across reboots
-# For more info about how to write init scripts https://openwrt.org/docs/techref/initscripts
-#
-# howto:
-# - upload this file as /etc/init.d/autoipset
 # - # chmod 755 /etc/init.d/autoipset
 # - # /etc/init.d/autoipset enable
 # - # /etc/init.d/autoipset start
@@ -92,5 +87,7 @@ do
 
     uci -q commit wireless
 done
-
+uci set wireless.radio0.txpower="30"
+uci set wireless.radio1.txpower="30"
+uci -q commit wireless
 wifi reload
