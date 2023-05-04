@@ -1,44 +1,20 @@
 #!/bin/sh
 
 mkdir -p /root/.ssh
-cat << EOI > /root/.ssh/authorized_keys
+cat << EOI > /etc/dropbear/authorized_keys
 ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAgEAq3Rd+hi08wKBKb6BGH11Da7ZPLYfiwv5CsG1BYlOLlmBJnoSZ/kIelIFS9aKnupPmIW4OwK6ApvfZlU411z6XQyORDwRUwbbVCv1ckdgpeDc0HT3b6lURIdal4vq3I/JkhHxJ8iehdSCDUdcYaDjCC3BS/tldHMuqf4Dgr5bLwkQSjqzC9yCXSKoIjKXcsaix3NakHYu4Skm5HvjYMrtrUkWX92tX0ekX8fJ7K7C2021jJ9xlgoXMwTQN8WVxWAAu3qvcyk6uadjK6x7KTryUvwnQRGLAEgLZNkMxHQclMYlz9NtQ6ESClKWVtL0vqwUOQE6kDwVzjXD5BDxMpn/ZvPFle6Oz4GwSypFv/9XNdYWby0rowDMTZ6UY4bjT1pzJVIWj8TBNzd2SFJH6dwEGs7RWe29tXhl2CpKNcVZ4T6lg83OH9HM/rWdqpSrKOKoS2yux8XxxuDHApRic32T0bNie2qKxKK7jXex1Ev5Q4wPiz/GunnPpgiLnYeLKBFezSLcma6wmus0N93cqQaFOBL3UjVptAdVYMDqIincpqBQTBoUuSntM5JdWFSbboIUMfER12LZn3dX73SucHFKdnOZPOCJ1gviYjlSfwstV9vTJnOJqU2nfzAY0sPgBcPgJLLBF3JQFFfTYz4GkiRM/lRq/S298dJ5dRR4Ej9qkPM= root@Sys-RDNS-NS1
 ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAiKt3wMRpC5ZF31E7uKk4yHotymmdA3QNYTOYKRy2ZSCBBZJGZ10EzQcHZgH30skVKMiRF/7dpcdM4FqYfQ1az1eHxKpTWWbMdnhs/JHXwEMoSIxceeOQKirWhbwshCkbOFZ76PBVIV34cQeUMxxVd/cy5w+noJ502gbpD9A0i+9RdWu8luQbXUKOi1oM2wilfd1HLc0GqsXd6lEdAgBR5u0C45NVjPf5rj7Rb+6aXe0iHfqJnln0qE2xNXrCTMkuLC6q1Qyh5SBMBCPc0TKgAml/gdd2p+JpbJatcCR3bkgppg8rBFXm7YRvFNvrEWCdhDNYDLFGvbSvQJKmqGZSYw== PhuongNH
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQClkSycJha1VyTFbqKVrB+3oMlAGJmb/kGn49KggsBIFdlLLRcHF9wH/tF5VFWhz9QVWqy9gAwxDLgdSRmUBNirW1DoB/kbCKLnFEEKppM7Me6fOMqiPkiQGp9DY5jJ4CpB3ZzWOxUDhBXIpoXmE/ayrUkNYB0GBGF/TfRHZwTzodsofK3T7yIHi8p5TdqpODeAiedUUNV9MX+kM0jS0o8gpp7Onxb3xpuuS+nbcmcIfkdFNhnVWv4IZufxDx1/6DUO3cd+h92e04/DvBiGKH6RG5ilcdl55titV+yHYKsTr4dla/Zz+6VOry7uXgJtoT11MPxRrDm5hj6GEoCmbn4/ root@db4-123d28
 EOI
-uci set dropbear.@dropbear[0].PasswordAuth="0"
-uci set dropbear.@dropbear[0].RootPasswordAuth="0"
+uci set dropbear.@dropbear[0].PasswordAuth='on'
+uci set dropbear.@dropbear[0].RootPasswordAuth='on'
 uci commit dropbear
 /etc/init.d/dropbear restart
 
-WIFI_PASSWORD_FILE="06061988P"
+wifi_password="06061988P"
 
-# If no password is provided in the image, exit and remove this script
-wifi_password="$($WIFI_PASSWORD_FILE)" || exit 0
-
-for radio in 'radio0' 'radio1'
+for radio in 'wifinet0' 'wifinet1'
 do
-    # Radio doesn't exist.
-    uci -q get wireless."$radio" || continue
-
-    # SSID is different from the OpenWrt default!
-    #
-    # This happens during upgrade in two cases:
-    # 1) if the user had previously customized the SSID;
-    # 2) if the user was already using our custom image with SSID
-    #    "rezine.org".  He/she may have changed the password and channel,
-    #    and we have no way to check that.
-    #
-    # In both cases, we don't want to touch anything.
-    ssid="$(uci -q get wireless.default_${radio}.ssid)"
-    [ "$ssid" != "OpenWrt" ] && continue
-
-    # Set fixed channel
-    hwmode=$(uci -q get wireless."$radio".hwmode)
-    [ "$hwmode" = "11g" ] && channel=6
-    [ "$hwmode" = "11a" ] && channel=36
-    [ -n "$channel" ] && uci set wireless."$radio".channel="$channel"
-
     # Set country
     uci set wireless."$radio".country="CN"
 
@@ -46,12 +22,14 @@ do
     uci set wireless."$radio".disabled="0"
 
     # Set SSID and password
-    uci set wireless.default_"$radio".ssid="MyHome2"
-    uci set wireless.default_"$radio".encryption="psk-mixed"
-    uci set wireless.default_"$radio".key="$wifi_password"
+    uci set wireless."$radio".ssid="MyHome2"
+    uci set wireless."$radio".encryption="psk-mixed"
+    uci set wireless."$radio".key="$wifi_password"
 
     uci -q commit wireless
 done
+
+wifi reload
 
 cat << EOI > /etc/init.d/autoipset
 #!/bin/sh /etc/rc.common
